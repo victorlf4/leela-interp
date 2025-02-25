@@ -212,7 +212,7 @@ def main(args):
         "lr": 1e-2,
         "weight_decay": 0,
         "k": 32,
-        "batch_size": 64,
+        "batch_size": args.batch_size,
         "device": args.device,
     }
 
@@ -294,6 +294,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--device", default="cuda", type=str)
+    parser.add_argument("--batch_size", default="64", type=int)
     parser.add_argument("--n_seeds", default=1, type=int)
     parser.add_argument("--base_dir", default=".", type=str)
     parser.add_argument("--n_puzzles", default=0, type=int)
