@@ -183,7 +183,7 @@ def main(args):
     base_dir = Path(args.base_dir)
 
     try:
-        with open(base_dir / "interesting_puzzles_without_corruptions.pkl", "rb") as f:
+        with open(base_dir / args.puzzle_file, "rb") as f:
             puzzles = pickle.load(f)
     except FileNotFoundError:
         raise ValueError("Puzzles not found, run make_puzzles.py first")
@@ -211,7 +211,7 @@ def main(args):
         "n_epochs": 5,
         "lr": 1e-2,
         "weight_decay": 0,
-        "k": 32,
+        "k": args.k,
         "batch_size": args.batch_size,
         "device": args.device,
     }
@@ -228,7 +228,7 @@ def main(args):
             n_samples=len(puzzles),
             # Uncomment to store activations on disk (they're about 70GB).
             # Without a path, they'll be kept in memory, which is faster but uses 70GB of RAM.
-            # path="residual_activations.zarr",
+            path="residual_activations.zarr",
             overwrite=True,
         )
 
@@ -295,6 +295,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--device", default="cuda", type=str)
     parser.add_argument("--batch_size", default="64", type=int)
+    parser.add_argument("--k", default="32", type=int)
     parser.add_argument("--n_seeds", default=1, type=int)
     parser.add_argument("--base_dir", default=".", type=str)
     parser.add_argument("--n_puzzles", default=0, type=int)
@@ -302,5 +303,7 @@ if __name__ == "__main__":
     parser.add_argument("--main", action="store_true")
     parser.add_argument("--random_model", action="store_true")
     parser.add_argument("--split", default="all", type=str)
+    parser.add_argument("--puzzle_file", default="interesting_puzzles_without_corruptions.pkl", type=str)
+    
     args = parser.parse_args()
     main(args)
