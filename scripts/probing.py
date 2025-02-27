@@ -9,7 +9,7 @@ import torch
 import tqdm
 from leela_interp import ActivationCache, Lc0Model, LeelaBoard
 from leela_interp.tools import probing
-
+import random
 
 def train_probe(
     X: np.ndarray,
@@ -98,13 +98,15 @@ def collect_data(
     return X, ys, z_squares
 
 
-def eval_probe(target_probe, source_probe, puzzles, activations, name, n_train):
+def eval_probe(target_probe, source_probe, puzzles, activations, name, n_train,random_z=False):
     X, target_y, z_squares = collect_data(
         puzzles, activations, name, "target", n_train=n_train, train=False
     )
     _, source_y, _ = collect_data(
         puzzles, activations, name, "source", n_train=n_train, train=False
     )
+    if(random_z):
+        z_squares = [random.randint(0, 63) for _ in range(len(z_squares))]
 
     # Predict target squares:
     Z = X[np.arange(len(X)), z_squares, :]
@@ -147,7 +149,7 @@ def train_probes(activations, puzzles, n_train, hparams):
     return target_probes, source_probes
 
 
-def eval_probes(target_probes, source_probes, puzzles, activations, n_train, path):
+def eval_probes(target_probes, source_probes, puzzles, activations, n_train, path,random_z=False):
     accuracies = []
     source_accuracies = []
     target_accuracies = []
@@ -157,7 +159,7 @@ def eval_probes(target_probes, source_probes, puzzles, activations, n_train, pat
     ):
         name = f"encoder{layer}/ln2"
         source_accuracy, target_accuracy, accuracy = eval_probe(
-            target_probe, source_probe, puzzles, activations, name, n_train
+            target_probe, source_probe, puzzles, activations, name, n_train,random_z=random_z
         )
         accuracies.append(accuracy)
         source_accuracies.append(source_accuracy)
@@ -211,7 +213,7 @@ def main(args):
         "n_epochs": 5,
         "lr": 1e-2,
         "weight_decay": 0,
-        "k": args.k,
+        "k": 32,
         "batch_size": args.batch_size,
         "device": args.device,
     }
@@ -253,7 +255,7 @@ def main(args):
                 puzzles,
                 activations,
                 n_train,
-                save_dir / "main.pkl",
+                save_dir / "main.pkl",random_z=args.rand_z
             )
 
         # Free up memory in case we're running the random model next
@@ -266,7 +268,7 @@ def main(args):
             names=["attn_body/ma_gating/rehape2"]
             + [f"encoder{layer}/ln2" for layer in range(15)],
             n_samples=len(puzzles),
-            # path="random_activations.zarr",
+            path="random_activations.zarr",
             store_boards=True,
             overwrite=True,
             model=random_model,
@@ -287,7 +289,7 @@ def main(args):
                 puzzles,
                 activations,
                 n_train,
-                save_dir / "random_model.pkl",
+                save_dir / "random_model.pkl",random_z=args.rand_z,
             )
 
 
@@ -295,7 +297,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--device", default="cuda", type=str)
     parser.add_argument("--batch_size", default="64", type=int)
-    parser.add_argument("--k", default="32", type=int)
     parser.add_argument("--n_seeds", default=1, type=int)
     parser.add_argument("--base_dir", default=".", type=str)
     parser.add_argument("--n_puzzles", default=0, type=int)
@@ -303,6 +304,7 @@ if __name__ == "__main__":
     parser.add_argument("--main", action="store_true")
     parser.add_argument("--random_model", action="store_true")
     parser.add_argument("--split", default="all", type=str)
+    parser.add_argument("--rand_z", action="store_true")
     parser.add_argument("--puzzle_file", default="interesting_puzzles_without_corruptions.pkl", type=str)
     
     args = parser.parse_args()
